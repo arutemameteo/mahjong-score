@@ -472,15 +472,33 @@ function setScanStatus(msg, cls=''){
 
 function handleScanFile(file){
   if(!file||!file.type.startsWith('image/')) return;
-  scanMediaType = file.type || 'image/jpeg';
+  setScanStatus('画像を変換中…','loading');
   const reader=new FileReader();
   reader.onload=e=>{
-    const b64=e.target.result.split(',')[1];
-    scanBase64=b64;
-    const img=document.getElementById('scan-img');
-    img.src=e.target.result; img.style.display='block';
-    document.getElementById('btn-scan-run').disabled=false;
-    setScanStatus('画像を読み込みました。「点数を読み取る」を押してください。');
+    const srcDataUrl=e.target.result;
+    const img=new Image();
+    img.onload=()=>{
+      const MAX_SIDE=1600;
+      let w=img.naturalWidth, h=img.naturalHeight;
+      if(w>MAX_SIDE||h>MAX_SIDE){
+        const scale=MAX_SIDE/Math.max(w,h);
+        w=Math.round(w*scale); h=Math.round(h*scale);
+      }
+      const canvas=document.createElement('canvas');
+      canvas.width=w; canvas.height=h;
+      canvas.getContext('2d').drawImage(img,0,0,w,h);
+      const jpegDataUrl=canvas.toDataURL('image/jpeg',0.85);
+      scanMediaType='image/jpeg';
+      scanBase64=jpegDataUrl.split(',')[1];
+      const previewImg=document.getElementById('scan-img');
+      previewImg.src=jpegDataUrl; previewImg.style.display='block';
+      document.getElementById('btn-scan-run').disabled=false;
+      setScanStatus('画像を読み込みました。「点数を読み取る」を押してください。');
+    };
+    img.onerror=()=>{
+      setScanStatus('この画像形式は読み込めませんでした。別の写真をお試しください。','err');
+    };
+    img.src=srcDataUrl;
   };
   reader.readAsDataURL(file);
 }
