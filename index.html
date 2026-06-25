@@ -240,7 +240,7 @@
 
 </main>
 <script>
-const APP_VERSION='1.0.0', BUILD_NUMBER=1;
+const APP_VERSION='1.0.0', BUILD_NUMBER=2;
 const MP=6, BASE=25000, BONUS=[30,10,-10,-30];
 const WINDS=['east','south','west','north'];
 const WL={east:'東',south:'南',west:'西',north:'北'};
@@ -509,7 +509,12 @@ function handleScanFileViaDataUrl(file){
     img.onload=()=>{dbg('dataURL <img> decode: OK');finishScanImage(img, img.naturalWidth, img.naturalHeight);};
     img.onerror=()=>{
       dbg('dataURL <img> decode: FAILED');
-      setScanStatus('この画像形式は読み込めませんでした。別の写真をお試しください。','err');
+      const isHeic=/heic|heif/i.test(file.type)||/\.(heic|heif)$/i.test(file.name||'');
+      if(isHeic){
+        setScanStatus('HEIC画像はこのブラウザでは読み込めません。iPhone/MacのSafariで開いてお試しください。','err');
+      } else {
+        setScanStatus('この画像形式は読み込めませんでした。別の写真をお試しください。','err');
+      }
     };
     img.src=e.target.result;
   };
