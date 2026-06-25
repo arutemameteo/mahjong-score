@@ -19,6 +19,7 @@
     padding:16px 24px;display:flex;align-items:center;position:sticky;top:0;z-index:100;}
   .logo{font-family:'Noto Serif JP',serif;font-size:22px;font-weight:700;color:var(--gold-light);letter-spacing:4px;}
   .subtitle{color:rgba(255,255,255,.45);font-size:11px;letter-spacing:2px;margin-top:2px;}
+  .version{color:rgba(255,255,255,.3);font-size:10px;letter-spacing:1px;margin-top:3px;}
   .save-indicator{font-size:10px;color:rgba(255,255,255,.35);margin-left:auto;letter-spacing:1px;transition:color .3s;}
   .save-indicator.saved{color:#52c984;}
 
@@ -120,7 +121,7 @@
 </head>
 <body>
 <header>
-  <div><div class="logo">麻　雀　点　数</div><div class="subtitle">MAHJONG SCORE TRACKER</div></div>
+  <div><div class="logo">麻　雀　点　数</div><div class="subtitle">MAHJONG SCORE TRACKER</div><div class="version" id="app-version"></div></div>
   <span class="save-indicator" id="si">● 自動保存</span>
 </header>
 <main>
@@ -239,6 +240,7 @@
 
 </main>
 <script>
+const APP_VERSION='1.0.0', BUILD_NUMBER=1;
 const MP=6, BASE=25000, BONUS=[30,10,-10,-30];
 const WINDS=['east','south','west','north'];
 const WL={east:'東',south:'南',west:'西',north:'北'};
@@ -492,12 +494,21 @@ function finishScanImage(source, srcW, srcH){
   setScanStatus('画像を読み込みました。「点数を読み取る」を押してください。');
 }
 
-function handleScanFileViaImgTag(file){
+function dbg(line){
+  const box=document.getElementById('debug-box');
+  const log=document.getElementById('debug-log');
+  box.style.display='block';
+  log.textContent += (log.textContent?'\n':'')+line;
+  console.log('[scan]',line);
+}
+
+function handleScanFileViaDataUrl(file){
   const reader=new FileReader();
   reader.onload=e=>{
     const img=new Image();
-    img.onload=()=>finishScanImage(img, img.naturalWidth, img.naturalHeight);
+    img.onload=()=>{dbg('dataURL <img> decode: OK');finishScanImage(img, img.naturalWidth, img.naturalHeight);};
     img.onerror=()=>{
+      dbg('dataURL <img> decode: FAILED');
       setScanStatus('この画像形式は読み込めませんでした。別の写真をお試しください。','err');
     };
     img.src=e.target.result;
@@ -505,16 +516,44 @@ function handleScanFileViaImgTag(file){
   reader.readAsDataURL(file);
 }
 
+function handleScanFileViaImgTag(file){
+  const url=URL.createObjectURL(file);
+  const img=new Image();
+  img.onload=()=>{
+    dbg('blob URL <img> decode: OK');
+    URL.revokeObjectURL(url);
+    finishScanImage(img, img.naturalWidth, img.naturalHeight);
+  };
+  img.onerror=()=>{
+    dbg('blob URL <img> decode: FAILED, falling back to dataURL');
+    URL.revokeObjectURL(url);
+    handleScanFileViaDataUrl(file);
+  };
+  img.src=url;
+}
+
 function handleScanFile(file){
-  if(!file||!file.type.startsWith('image/')) return;
+  document.getElementById('debug-log').textContent='';
+  if(!file){dbg('no file selected');return;}
+  dbg('file name: '+file.name);
+  dbg('file type: '+file.type);
+  dbg('file size: '+file.size+' bytes');
+  if(!file.type.startsWith('image/')){
+    dbg('rejected: file.type does not start with image/');
+    setScanStatus('この画像形式は読み込めませんでした。別の写真をお試しください。','err');
+    return;
+  }
   setScanStatus('画像を変換中…','loading');
   if(window.createImageBitmap){
     createImageBitmap(file).then(bitmap=>{
+      dbg('createImageBitmap: OK');
       finishScanImage(bitmap, bitmap.width, bitmap.height);
-    }).catch(()=>{
+    }).catch(err=>{
+      dbg('createImageBitmap: FAILED - '+err.name+': '+err.message);
       handleScanFileViaImgTag(file);
     });
   } else {
+    dbg('createImageBitmap not supported in this browser');
     handleScanFileViaImgTag(file);
   }
 }
@@ -634,6 +673,7 @@ ${layoutDesc}
   }
 }
 
+document.getElementById('app-version').textContent='v'+APP_VERSION+' build.'+BUILD_NUMBER;
 load();buildPG();updSel();renderT();preview();
 
 // APIキーUI初期化
