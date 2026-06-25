@@ -1,0 +1,650 @@
+<!DOCTYPE html>
+<!-- saved from url=(0057)file:///Users/endouyusuke/Downloads/mahjong-score-v3.html -->
+<html lang="ja"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>麻雀スコア計算</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&family=Noto+Serif+JP:wght@400;700&display=swap');
+  :root {
+    --felt:#1b4332; --felt-light:#2d6a4f; --felt-dark:#0f2419;
+    --ivory:#f8f4ee; --bone:#ede7dc; --tile:#fdfaf4;
+    --red:#c0392b; --gold:#b8860b; --gold-light:#d4a017;
+    --muted:#6b6b6b; --border:#d4cfc6; --plus:#1b4332; --minus:#9b2335;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:'Noto Sans JP',sans-serif;background:var(--felt-dark);color:#1a1a1a;min-height:100vh;}
+
+  header{background:linear-gradient(135deg,var(--felt-dark),var(--felt));border-bottom:2px solid var(--gold);
+    padding:16px 24px;display:flex;align-items:center;position:sticky;top:0;z-index:100;}
+  .logo{font-family:'Noto Serif JP',serif;font-size:22px;font-weight:700;color:var(--gold-light);letter-spacing:4px;}
+  .subtitle{color:rgba(255,255,255,.45);font-size:11px;letter-spacing:2px;margin-top:2px;}
+  .save-indicator{font-size:10px;color:rgba(255,255,255,.35);margin-left:auto;letter-spacing:1px;transition:color .3s;}
+  .save-indicator.saved{color:#52c984;}
+
+  main{max-width:1100px;margin:0 auto;padding:24px 16px;display:flex;flex-direction:column;gap:20px;}
+  .card{background:var(--ivory);border-radius:4px;border:1px solid var(--border);overflow:hidden;}
+  .card-header{background:var(--bone);border-bottom:1px solid var(--border);padding:10px 16px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+  .card-title{font-size:12px;font-weight:700;letter-spacing:2px;color:var(--felt);}
+  .card-body{padding:16px;}
+
+  .player-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;}
+  .player-slot label{display:block;font-size:10px;color:var(--muted);letter-spacing:1px;margin-bottom:4px;}
+  .player-slot input{width:100%;padding:6px 8px;font-size:13px;font-family:inherit;
+    border:1px solid var(--border);border-radius:2px;background:var(--tile);outline:none;}
+  .player-slot input:focus{border-color:var(--felt-light);}
+
+  /* 卓レイアウト */
+  .table-layout-wrap{overflow-x:auto;width:100%;padding-bottom:4px;}
+  .table-layout{display:grid;grid-template-columns:165px 215px 165px;grid-template-rows:auto auto auto;
+    gap:8px;align-items:center;justify-items:center;width:575px;margin:0 auto;}
+  .table-center{grid-column:2;grid-row:2;background:var(--felt);border-radius:6px;
+    width:195px;height:118px;display:flex;align-items:center;justify-content:center;}
+  .tc-label{font-family:'Noto Serif JP',serif;color:rgba(255,255,255,.2);font-size:26px;letter-spacing:8px;}
+
+  .seat-card{background:var(--tile);border:1px solid var(--border);border-radius:4px;padding:10px 10px 8px;width:160px;}
+  .seat-card.east {grid-column:2;grid-row:3;border-top:3px solid #c0392b;}
+  .seat-card.south{grid-column:3;grid-row:2;border-left:3px solid #d4820a;}
+  .seat-card.west {grid-column:2;grid-row:1;border-bottom:3px solid #2980b9;}
+  .seat-card.north{grid-column:1;grid-row:2;border-right:3px solid #27ae60;}
+  .seat-wind{font-family:'Noto Serif JP',serif;font-size:11px;font-weight:700;letter-spacing:1px;margin-bottom:5px;display:flex;align-items:center;gap:4px;}
+  .seat-wind-k{font-size:15px;}
+  .east  .seat-wind{color:#c0392b;}
+  .south .seat-wind{color:#c0630a;}
+  .west  .seat-wind{color:#2980b9;}
+  .north .seat-wind{color:#1e8449;}
+  .seat-sel{width:100%;padding:5px 6px;font-size:12px;font-family:inherit;border:1px solid var(--border);
+    border-radius:2px;background:white;outline:none;margin-bottom:6px;cursor:pointer;}
+  .seat-sel:focus{border-color:var(--felt-light);}
+  .seat-inp{width:100%;padding:6px 8px;font-size:14px;font-family:inherit;border:1px solid var(--border);
+    border-radius:2px;background:white;text-align:right;outline:none;}
+  .seat-inp:focus{border-color:var(--felt-light);}
+  .seat-prev{text-align:right;font-size:13px;font-weight:700;height:18px;margin-top:4px;}
+  .seat-prev.pos{color:var(--plus);}
+  .seat-prev.neg{color:var(--minus);}
+  .seat-prev.z{color:var(--muted);}
+
+  .btn-row{display:flex;gap:10px;justify-content:center;}
+  .btn{padding:9px 22px;font-size:13px;font-family:inherit;font-weight:500;border:none;border-radius:2px;cursor:pointer;letter-spacing:1px;}
+  .btn:active{transform:scale(.97);}
+  .btn-p{background:var(--felt);color:white;}
+  .btn-p:hover{background:var(--felt-light);}
+  .btn-g{background:transparent;color:var(--muted);border:1px solid var(--border);}
+  .btn-g:hover{background:var(--bone);}
+  .btn-danger{background:transparent;color:#9b2335;border:1px solid #e8b4bb;font-size:11px;padding:5px 12px;letter-spacing:1px;border-radius:2px;cursor:pointer;font-family:inherit;}
+  .btn-danger:hover{background:#fdf0f2;}
+
+  .tbl-wrap{overflow-x:auto;}
+  table{width:100%;border-collapse:collapse;font-size:13px;}
+  thead tr{background:var(--felt);color:rgba(255,255,255,.9);}
+  thead th{padding:9px 12px;font-weight:500;letter-spacing:1px;text-align:center;white-space:nowrap;}
+  thead th:first-child{text-align:left;}
+  tbody tr{border-bottom:1px solid var(--border);background:var(--tile);}
+  tbody tr:nth-child(even){background:var(--ivory);}
+  tbody td{padding:8px 12px;text-align:center;white-space:nowrap;}
+  tbody td:first-child{text-align:left;color:var(--muted);font-size:11px;line-height:1.6;}
+  .sp{color:var(--plus);font-weight:700;} .sn{color:var(--minus);font-weight:700;}
+  .sz{color:var(--muted);} .sd{color:#ccc;}
+  tfoot tr{background:var(--felt-dark)!important;color:white;border-top:2px solid var(--gold);}
+  tfoot td{padding:10px 12px;text-align:center;font-weight:700;font-size:14px;}
+  tfoot td:first-child{text-align:left;font-family:'Noto Serif JP',serif;font-size:12px;letter-spacing:2px;}
+  .tp{color:#52c984;} .tn{color:#f06b6b;} .tz{color:rgba(255,255,255,.4);} .td2{color:rgba(255,255,255,.2);}
+  .del{background:none;border:none;color:#ccc;cursor:pointer;font-size:14px;padding:2px 6px;border-radius:2px;}
+  .del:hover{color:var(--red);background:#ffeaea;}
+  .empty{text-align:center;color:var(--muted);padding:32px;font-size:13px;letter-spacing:1px;}
+  .badge{background:var(--gold);color:white;font-size:10px;padding:2px 7px;border-radius:10px;font-weight:700;margin-left:6px;}
+
+  /* APIキー設定 */
+  .api-key-row{display:flex;gap:8px;align-items:center;}
+  .api-key-row input{flex:1;padding:7px 10px;font-size:13px;font-family:inherit;
+    border:1px solid var(--border);border-radius:2px;background:var(--tile);outline:none;letter-spacing:1px;}
+  .api-key-row input:focus{border-color:var(--felt-light);}
+  .api-key-note{font-size:11px;color:var(--muted);margin-top:6px;line-height:1.6;}
+
+  /* 画像読み取り */
+  .scan-area{border:2px dashed var(--border);border-radius:4px;padding:16px;text-align:center;
+    cursor:pointer;transition:border-color .2s;margin-bottom:10px;background:var(--tile);}
+  .scan-area:hover{border-color:var(--felt-light);}
+  .scan-area.dragover{border-color:var(--felt);background:#edf5f0;}
+  .scan-preview{max-width:100%;max-height:200px;border-radius:3px;margin-top:10px;display:none;}
+  .scan-status{font-size:12px;margin-top:8px;min-height:18px;text-align:center;}
+  .scan-status.loading{color:var(--felt);}
+  .scan-status.ok{color:var(--plus);}
+  .scan-status.err{color:var(--minus);}
+    .player-grid{grid-template-columns:repeat(3,1fr);}
+    .table-layout{grid-template-columns:128px 168px 128px;}
+    .seat-card{width:124px;}
+    .table-center{width:152px;height:92px;}
+  }
+</style>
+</head>
+<body>
+<header>
+  <div><div class="logo">麻　雀　点　数</div><div class="subtitle">MAHJONG SCORE TRACKER</div></div>
+  <span class="save-indicator" id="si">● 自動保存</span>
+</header>
+<main>
+
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">API設定</span>
+      <span style="font-size:11px;color:var(--muted);margin-left:auto">画像読み取り機能に使用（ローカル保存）</span>
+    </div>
+    <div class="card-body">
+      <div class="api-key-row">
+        <input type="password" id="api-key-inp" placeholder="sk-ant-api03-..." autocomplete="off">
+        <button class="btn btn-g" id="btn-save-key" style="white-space:nowrap;padding:7px 14px;font-size:12px">保存</button>
+        <button class="btn btn-g" id="btn-clear-key" style="white-space:nowrap;padding:7px 14px;font-size:12px;color:var(--minus)">削除</button>
+      </div>
+      <div class="api-key-note">
+        APIキーは <b>Anthropic Console</b>（console.anthropic.com）で取得できます。このデバイスのローカルストレージにのみ保存されます。<br><br>
+        ⚠️ <b>画像読み取り機能はClaudeアプリ内では動作しません。</b><br>
+        このHTMLファイルをiPhoneに保存し、<b>Safariで開いて</b>ご利用ください。<br>
+        保存方法：右上の「…」→「ダウンロード」→ファイルアプリに保存 → Safariで開く
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">プレイヤー設定</span>
+      <span style="font-size:11px;color:var(--muted);margin-left:auto">最大6名まで</span>
+    </div>
+    <div class="card-body"><div class="player-grid" id="pg"><div class="player-slot"><label>P1</label><input type="text" placeholder="名前1"></div><div class="player-slot"><label>P2</label><input type="text" placeholder="名前2"></div><div class="player-slot"><label>P3</label><input type="text" placeholder="名前3"></div><div class="player-slot"><label>P4</label><input type="text" placeholder="名前4"></div><div class="player-slot"><label>P5</label><input type="text" placeholder="名前5"></div><div class="player-slot"><label>P6</label><input type="text" placeholder="名前6"></div></div></div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">半荘入力</span>
+      <span style="font-size:11px;color:var(--muted);margin-left:auto">各席のプレイヤーと持ち点を入力 ／ 同点は 東 &gt; 南 &gt; 西 &gt; 北 で順位決定</span>
+      <button class="btn btn-g" id="btn-scan-open" style="font-size:11px;padding:5px 12px;white-space:nowrap">📷 写真から読み取り</button>
+    </div>
+    <div class="card-body">
+      <!-- 画像読み取りエリア（折りたたみ） -->
+      <div id="scan-panel" style="display:none;margin-bottom:14px;">
+        <div class="scan-area" id="scan-drop">
+          <div style="font-size:13px;color:var(--muted)">ここをタップして写真を選択<br><span style="font-size:11px">または画像をドロップ</span></div>
+          <img class="scan-preview" id="scan-img">
+          <input type="file" id="scan-file" accept="image/*" style="display:none">
+        </div>
+        <div class="scan-status" id="scan-status"></div>
+        <div id="debug-box" style="display:none;margin-top:8px;background:#1a1a1a;border-radius:3px;padding:10px;">
+          <div style="font-size:10px;color:#52c984;margin-bottom:4px;letter-spacing:1px">DEBUG LOG</div>
+          <pre id="debug-log" style="font-size:11px;color:#f0f0f0;white-space:pre-wrap;word-break:break-all;line-height:1.5"></pre>
+        </div>
+        <div style="text-align:center;margin-top:6px">
+          <button class="btn btn-p" id="btn-scan-run" style="font-size:12px;padding:7px 18px" disabled="">点数を読み取る</button>
+        </div>
+      </div>
+      <div class="table-layout-wrap">
+        <div class="table-layout">
+          <div></div>
+          <div class="seat-card west">
+            <div class="seat-wind"><span class="seat-wind-k">西</span> WEST</div>
+            <select class="seat-sel" id="sel-west"><option value="">－ 未選択 －</option><option value="0">P1</option><option value="1">P2</option><option value="2">P3</option><option value="3">P4</option><option value="4">P5</option><option value="5">P6</option></select>
+            <input class="seat-inp" id="inp-west" type="number" placeholder="持ち点">
+            <div class="seat-prev z" id="pv-west"></div>
+          </div>
+          <div></div>
+
+          <div class="seat-card north">
+            <div class="seat-wind"><span class="seat-wind-k">北</span> NORTH</div>
+            <select class="seat-sel" id="sel-north"><option value="">－ 未選択 －</option><option value="0">P1</option><option value="1">P2</option><option value="2">P3</option><option value="3">P4</option><option value="4">P5</option><option value="5">P6</option></select>
+            <input class="seat-inp" id="inp-north" type="number" placeholder="持ち点">
+            <div class="seat-prev z" id="pv-north"></div>
+          </div>
+          <div class="table-center"><span class="tc-label">卓</span></div>
+          <div class="seat-card south">
+            <div class="seat-wind"><span class="seat-wind-k">南</span> SOUTH</div>
+            <select class="seat-sel" id="sel-south"><option value="">－ 未選択 －</option><option value="0">P1</option><option value="1">P2</option><option value="2">P3</option><option value="3">P4</option><option value="4">P5</option><option value="5">P6</option></select>
+            <input class="seat-inp" id="inp-south" type="number" placeholder="持ち点">
+            <div class="seat-prev z" id="pv-south"></div>
+          </div>
+
+          <div></div>
+          <div class="seat-card east">
+            <div class="seat-wind"><span class="seat-wind-k">東</span> EAST</div>
+            <select class="seat-sel" id="sel-east"><option value="">－ 未選択 －</option><option value="0">P1</option><option value="1">P2</option><option value="2">P3</option><option value="3">P4</option><option value="4">P5</option><option value="5">P6</option></select>
+            <input class="seat-inp" id="inp-east" type="number" placeholder="持ち点">
+            <div class="seat-prev z" id="pv-east"></div>
+          </div>
+          <div></div>
+        </div>
+        <div id="sum-bar" style="width:575px;margin:12px auto 0;
+          padding:8px 14px;border-radius:3px;font-size:13px;align-items:center;gap:8px;
+          background:#f0f7f2;border:1px solid #b7dcc8;color:var(--felt);display:none;">
+        </div>
+        <div class="btn-row" style="width:575px;margin:10px auto 0;">
+          <button class="btn btn-g" id="btn-clear-in">クリア</button>
+          <button class="btn btn-p" id="btn-add">この半荘を記録</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">成績表</span>
+      <span class="badge" id="gc">0半荘</span>
+      <span style="font-size:11px;color:var(--muted);margin-left:auto">25000点持ち ／ 五捨六入 ／ ウマ 1位+30 2位+10 3位−10 4位−30</span>
+      <button class="btn btn-danger" id="btn-reset" style="margin-left:12px">成績リセット</button>
+    </div>
+    <div class="card-body" style="padding:0">
+      <div class="tbl-wrap">
+        <table><thead id="th"><tr><th>対局</th><th>P1</th><th>P2</th><th>P3</th><th>P4</th><th>P5</th><th>P6</th><th></th></tr></thead><tbody id="tb"></tbody><tfoot id="tf"></tfoot></table>
+      </div>
+      <div class="empty" id="em">まだ記録がありません</div>
+    </div>
+  </div>
+
+</main>
+<script>
+const MP=6, BASE=25000, BONUS=[30,10,-10,-30];
+const WINDS=['east','south','west','north'];
+const WL={east:'東',south:'南',west:'西',north:'北'};
+const WP={east:0,south:1,west:2,north:3};
+const LS='mahjong_v2';
+
+let players=Array(MP).fill(''), games=[];
+
+function getSeatInput(){
+  const s={};
+  WINDS.forEach(w=>{
+    s[w]={pi:document.getElementById('sel-'+w).value, sc:document.getElementById('inp-'+w).value};
+  });
+  return s;
+}
+
+function restoreSeatInput(s){
+  if(!s) return;
+  WINDS.forEach(w=>{
+    if(!s[w]) return;
+    const sel=document.getElementById('sel-'+w);
+    const inp=document.getElementById('inp-'+w);
+    // セレクトの選択肢が構築された後に値をセットするため値だけ保持、updSel後に適用
+    sel.dataset.restore=s[w].pi||'';
+    inp.value=s[w].sc||'';
+  });
+}
+
+function save(){
+  try{localStorage.setItem(LS,JSON.stringify({players,games,seatInput:getSeatInput()}));flash();}catch(e){}
+}
+function load(){
+  try{
+    const d=JSON.parse(localStorage.getItem(LS)||'null');
+    if(d){
+      players=d.players||players;
+      games=d.games||games;
+      if(d.seatInput) restoreSeatInput(d.seatInput);
+    }
+  }catch(e){}
+}
+let _st;
+function sched(){clearTimeout(_st);_st=setTimeout(save,400);}
+function flash(){
+  const el=document.getElementById('si');el.className='save-indicator saved';el.textContent='● 保存しました';
+  clearTimeout(el._t);el._t=setTimeout(()=>{el.className='save-indicator';el.textContent='● 自動保存';},1800);
+}
+
+function esc(s){return(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function pname(i){return players[i]||'P'+(i+1);}
+
+function buildPG(){
+  const g=document.getElementById('pg');g.innerHTML='';
+  for(let i=0;i<MP;i++){
+    const d=document.createElement('div');d.className='player-slot';
+    const lbl=document.createElement('label');lbl.textContent='P'+(i+1);
+    const inp=document.createElement('input');
+    inp.type='text';inp.placeholder='名前'+(i+1);inp.value=esc(players[i]);
+    inp.addEventListener('input',()=>onPN(i,inp.value));
+    d.appendChild(lbl);d.appendChild(inp);
+    g.appendChild(d);
+  }
+}
+function onPN(i,v){players[i]=v.trim();updSel();renderT();sched();}
+
+function updSel(){
+  WINDS.forEach(w=>{
+    const s=document.getElementById('sel-'+w);
+    const cur=s.dataset.restore!==undefined ? s.dataset.restore : s.value;
+    s.innerHTML='<option value="">－ 未選択 －</option>';
+    for(let i=0;i<MP;i++){const o=document.createElement('option');o.value=i;o.textContent=pname(i);s.appendChild(o);}
+    s.value=cur;
+    delete s.dataset.restore;
+  });
+}
+
+function roundS(s){const r=s%1000,b=s-r;return r<=500?b:b+1000;}
+
+function calcPts(seats){
+  const a=WINDS.map(w=>{
+    const s=seats[w];
+    if(!s||s.pi===''||s.pi===null||s.sc===null||isNaN(s.sc))return null;
+    return{wind:w,pi:parseInt(s.pi),sc:parseInt(s.sc)};
+  });
+  if(a.some(x=>x===null))return null;
+  const sorted=[...a].sort((a,b)=>b.sc-a.sc||WP[a.wind]-WP[b.wind]);
+  const pts={};
+  for(let r=0;r<3;r++){const{pi,sc}=sorted[r];pts[pi]=parseFloat(((roundS(sc)-BASE)/1000+BONUS[r]).toFixed(1));}
+  const s3=Object.values(pts).reduce((a,b)=>a+b,0);
+  pts[sorted[3].pi]=parseFloat((-s3).toFixed(1));
+  return{pts,sorted};
+}
+
+function getSeats(){
+  const s={};
+  WINDS.forEach(w=>{
+    const pv=document.getElementById('sel-'+w).value;
+    const sv=document.getElementById('inp-'+w).value.trim();
+    s[w]={pi:pv===''?'':parseInt(pv),sc:sv===''?null:parseInt(sv)};
+  });
+  return s;
+}
+
+function preview(){
+  const seats=getSeats(),res=calcPts(seats);
+  WINDS.forEach(w=>{
+    const el=document.getElementById('pv-'+w),seat=seats[w];
+    if(!res||!seat||seat.pi===''){el.textContent='';el.className='seat-prev z';return;}
+    const v=res.pts[seat.pi];
+    if(v===undefined){el.textContent='';return;}
+    el.textContent=(v>0?'+':'')+v.toFixed(1);
+    el.className='seat-prev '+(v>0?'pos':v<0?'neg':'z');
+  });
+  updateSumBar(seats);
+  sched();
+}
+
+function updateSumBar(seats){
+  const bar=document.getElementById('sum-bar');
+  const vals=WINDS.map(w=>seats[w].sc).filter(v=>v!==null&&!isNaN(v));
+  if(vals.length===0){bar.style.display='none';return;}
+  const total=vals.reduce((a,b)=>a+b,0);
+  const ok=vals.length===4&&total===100000;
+  const short=vals.length<4;
+  bar.style.display='flex';
+  if(short){
+    bar.style.background='#f8f4ee';bar.style.border='1px solid var(--border)';bar.style.color='var(--muted)';
+    bar.innerHTML=`<span style="font-size:16px">－</span><span>合計 <b>${total.toLocaleString()}</b> 点（あと${4-vals.length}席入力中）</span>`;
+  } else if(ok){
+    bar.style.background='#f0f7f2';bar.style.border='1px solid #7ec8a0';bar.style.color='var(--felt)';
+    bar.innerHTML=`<span style="font-size:16px">✓</span><span>合計 <b>100,000</b> 点 ― OK</span>`;
+  } else {
+    const diff=total-100000;
+    bar.style.background='#fdf2f2';bar.style.border='1px solid #e8b4bb';bar.style.color='var(--minus)';
+    bar.innerHTML=`<span style="font-size:16px">!</span><span>合計 <b>${total.toLocaleString()}</b> 点 ― 100,000点と <b>${diff>0?'+':''}${diff.toLocaleString()}</b> 点ずれています</span>`;
+  }
+}
+
+function addGame(){
+  const seats=getSeats();
+  const noSel=WINDS.filter(w=>seats[w].pi==='');
+  if(noSel.length){alert(noSel.map(w=>WL[w]).join('・')+'のプレイヤーが選択されていません');return;}
+  const noSc=WINDS.filter(w=>seats[w].sc===null||isNaN(seats[w].sc));
+  if(noSc.length){alert(noSc.map(w=>WL[w]).join('・')+'の持ち点が入力されていません');return;}
+  if(new Set(WINDS.map(w=>seats[w].pi)).size<4){alert('同じプレイヤーが複数の席に選択されています');return;}
+  const res=calcPts(seats);
+  if(!res){alert('計算エラー');return;}
+  games.push({seats,pts:res.pts});
+  clearIn();renderT();save();
+}
+
+function clearIn(){
+  WINDS.forEach(w=>{
+    document.getElementById('inp-'+w).value='';
+    const p=document.getElementById('pv-'+w);p.textContent='';p.className='seat-prev z';
+  });
+  document.getElementById('sum-bar').style.display='none';
+}
+
+function delGame(i){
+  games.splice(i,1);renderT();save();
+}
+
+function clearAll(){
+  games=[];renderT();save();
+}
+
+function renderT(){
+  const th=document.getElementById('th'),tb=document.getElementById('tb'),tf=document.getElementById('tf');
+  document.getElementById('gc').textContent=games.length+'半荘';
+  let h='<tr><th>対局</th>';
+  for(let i=0;i<MP;i++)h+=`<th>${esc(pname(i))}</th>`;
+  h+='<th></th></tr>';
+  th.innerHTML=h;
+
+  if(!games.length){tb.innerHTML='';tf.innerHTML='';document.getElementById('em').style.display='';return;}
+  document.getElementById('em').style.display='none';
+
+  // tbodyをDOMで構築（innerHTML+イベント委譲）
+  tb.innerHTML='';
+  games.forEach((g,gi)=>{
+    const tr=document.createElement('tr');
+    const si=WINDS.map(w=>{const s=g.seats[w];return(!s||s.pi===''||s.pi===undefined)?'':WL[w]+':'+esc(pname(s.pi));}).filter(Boolean).join(' ');
+    const td0=document.createElement('td');
+    td0.innerHTML=`第${gi+1}半荘<br><span style="color:#bbb">${si}</span>`;
+    tr.appendChild(td0);
+    for(let i=0;i<MP;i++){
+      const td=document.createElement('td');
+      const v=g.pts[i];
+      if(v===undefined||v===null){td.className='sd';td.textContent='—';}
+      else{td.className=v>0?'sp':v<0?'sn':'sz';td.textContent=(v>0?'+':'')+parseFloat(v).toFixed(1);}
+      tr.appendChild(td);
+    }
+    const tdDel=document.createElement('td');
+    const btn=document.createElement('button');
+    btn.className='del';btn.title='削除';btn.textContent='✕';
+    btn.addEventListener('click',()=>delGame(gi));
+    tdDel.appendChild(btn);tr.appendChild(tdDel);
+    tb.appendChild(tr);
+  });
+
+  const tot=Array(MP).fill(0),par=Array(MP).fill(false);
+  games.forEach(g=>{for(let i=0;i<MP;i++){const v=g.pts[i];if(v!==undefined&&v!==null){tot[i]+=parseFloat(v);par[i]=true;}}});
+  let f='<tr><td>累　計</td>';
+  for(let i=0;i<MP;i++){
+    if(!par[i]){f+='<td class="td2">—</td>';}
+    else{const v=tot[i];f+=`<td class="${v>0?'tp':v<0?'tn':'tz'}">${v>0?'+':''}${v.toFixed(1)}</td>`;}
+  }
+  f+='<td></td></tr>';
+  tf.innerHTML=f;
+}
+
+// ==================== APIキー ====================
+const LS_APIKEY = 'mahjong_apikey';
+
+function loadApiKey(){
+  try{ return localStorage.getItem(LS_APIKEY)||''; }catch(e){return '';}
+}
+function saveApiKey(k){
+  try{ if(k) localStorage.setItem(LS_APIKEY,k); else localStorage.removeItem(LS_APIKEY); }catch(e){}
+}
+
+// ==================== 画像読み取り ====================
+let scanBase64 = null;
+let scanMediaType = 'image/jpeg';
+
+function setScanStatus(msg, cls=''){
+  const el=document.getElementById('scan-status');
+  el.textContent=msg; el.className='scan-status'+(cls?' '+cls:'');
+}
+
+function handleScanFile(file){
+  if(!file||!file.type.startsWith('image/')) return;
+  scanMediaType = file.type || 'image/jpeg';
+  const reader=new FileReader();
+  reader.onload=e=>{
+    const b64=e.target.result.split(',')[1];
+    scanBase64=b64;
+    const img=document.getElementById('scan-img');
+    img.src=e.target.result; img.style.display='block';
+    document.getElementById('btn-scan-run').disabled=false;
+    setScanStatus('画像を読み込みました。「点数を読み取る」を押してください。');
+  };
+  reader.readAsDataURL(file);
+}
+
+function runScan(){
+  const apiKey=document.getElementById('api-key-inp').value.trim();
+  if(!apiKey){ setScanStatus('APIキーが設定されていません。','err'); return; }
+  if(!scanBase64){ setScanStatus('画像を選択してください。','err'); return; }
+
+  setScanStatus('読み取り中…','loading');
+  document.getElementById('btn-scan-run').disabled=true;
+
+  const layoutDesc = '卓の配置：上=西、下=東、左=北、右=南';
+  const prompt = `この麻雀卓のスコア表示画像から、各席の持ち点を読み取ってください。
+${layoutDesc}
+画像内も同じ方角の配置になっています（上の数字=西、下の数字=東、左の数字=北、右の数字=南）。
+
+必ず以下のJSON形式のみで返答してください。他の文章は不要です：
+{"east":数値,"south":数値,"west":数値,"north":数値}
+
+点数が読み取れない席はnullにしてください。`;
+
+  try{
+    const debugPre = [
+      'apiKey length: '+apiKey.length,
+      'scanBase64 length: '+(scanBase64?scanBase64.length:'null'),
+      'scanMediaType: '+scanMediaType,
+    ].join('\n');
+    document.getElementById('debug-log').textContent = debugPre;
+    document.getElementById('debug-box').style.display='block';
+
+    const bodyObj = {
+      model:'claude-sonnet-4-6',
+      max_tokens:200,
+      messages:[{
+        role:'user',
+        content:[
+          {type:'image', source:{type:'base64', media_type: scanMediaType, data:scanBase64}},
+          {type:'text', text:prompt}
+        ]
+      }]
+    };
+    const bodyStr = JSON.stringify(bodyObj);
+    document.getElementById('debug-log').textContent = debugPre + '\nbody length: '+bodyStr.length+'\nXHR sending...';
+
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', 'https://api.anthropic.com/v1/messages', true);
+    xhr.setRequestHeader('Content-Type', 'application/json');
+    xhr.setRequestHeader('x-api-key', apiKey);
+    xhr.setRequestHeader('anthropic-version', '2023-06-01');
+    xhr.setRequestHeader('anthropic-dangerous-direct-browser-access', 'true');
+
+    xhr.onload = function(){
+      const rawText = xhr.responseText;
+      document.getElementById('debug-log').textContent = debugPre + '\nstatus: '+xhr.status+'\nraw: '+rawText;
+      document.getElementById('debug-box').style.display='block';
+
+      if(xhr.status !== 200){
+        setScanStatus('APIエラー (status '+xhr.status+')','err');
+        document.getElementById('btn-scan-run').disabled=false;
+        return;
+      }
+
+      let data;
+      try{ data = JSON.parse(rawText); }
+      catch(pe){
+        setScanStatus('JSONパースエラー: '+pe.message,'err');
+        document.getElementById('btn-scan-run').disabled=false;
+        return;
+      }
+
+      const text=data.content.map(c=>c.text||'').join('').trim();
+      document.getElementById('debug-log').textContent += '\nparsed text: '+text;
+
+      const match=text.match(/\{[\s\S]*?\}/);
+      if(!match){
+        setScanStatus('点数を読み取れませんでした。画像を確認してください。','err');
+        document.getElementById('btn-scan-run').disabled=false;
+        return;
+      }
+
+      const scores=JSON.parse(match[0]);
+      let filled=0;
+      WINDS.forEach(w=>{
+        const v=scores[w];
+        if(v!==null&&v!==undefined&&!isNaN(Number(v))){
+          document.getElementById('inp-'+w).value=v;
+          filled++;
+        }
+      });
+
+      preview();
+      setScanStatus('✓ '+filled+'席の点数を入力しました。内容を確認してください。','ok');
+      document.getElementById('btn-scan-run').disabled=false;
+    };
+
+    xhr.onerror = function(){
+      document.getElementById('debug-log').textContent = debugPre + '\nXHR onerror: status='+xhr.status+' statusText='+xhr.statusText;
+      document.getElementById('debug-box').style.display='block';
+      setScanStatus('通信エラー (XHR onerror)','err');
+      document.getElementById('btn-scan-run').disabled=false;
+    };
+
+    xhr.send(bodyStr);
+    return; // XHRは非同期なのでここでtry終了
+
+  }catch(e){
+    console.error('Scan error:', e);
+    setScanStatus('通信エラー: '+e.name+' / '+e.message+' / '+JSON.stringify(e),'err');
+    document.getElementById('debug-log').textContent = [
+      'name: '+e.name,
+      'message: '+e.message,
+      'stack: '+e.stack
+    ].join('\n');
+    document.getElementById('debug-box').style.display='block';
+    document.getElementById('btn-scan-run').disabled=false;
+  }
+}
+
+load();buildPG();updSel();renderT();preview();
+
+// APIキーUI初期化
+const savedKey=loadApiKey();
+if(savedKey) document.getElementById('api-key-inp').value=savedKey;
+
+// 全イベント登録
+WINDS.forEach(w=>{
+  document.getElementById('sel-'+w).addEventListener('change', preview);
+  document.getElementById('inp-'+w).addEventListener('input', preview);
+});
+document.getElementById('btn-clear-in').addEventListener('click', clearIn);
+document.getElementById('btn-add').addEventListener('click', addGame);
+document.getElementById('btn-reset').addEventListener('click', clearAll);
+
+// APIキーボタン
+document.getElementById('btn-save-key').addEventListener('click',()=>{
+  const k=document.getElementById('api-key-inp').value.trim();
+  saveApiKey(k);
+  const btn=document.getElementById('btn-save-key');
+  btn.textContent='保存しました';setTimeout(()=>btn.textContent='保存',1500);
+});
+document.getElementById('btn-clear-key').addEventListener('click',()=>{
+  document.getElementById('api-key-inp').value='';
+  saveApiKey('');
+});
+
+// 画像読み取りパネル開閉
+document.getElementById('btn-scan-open').addEventListener('click',()=>{
+  const p=document.getElementById('scan-panel');
+  p.style.display=p.style.display==='none'?'block':'none';
+});
+
+// ドロップ＆クリック
+const scanDrop=document.getElementById('scan-drop');
+const scanFile=document.getElementById('scan-file');
+scanDrop.addEventListener('click',()=>scanFile.click());
+scanFile.addEventListener('change',e=>handleScanFile(e.target.files[0]));
+scanDrop.addEventListener('dragover',e=>{e.preventDefault();scanDrop.classList.add('dragover');});
+scanDrop.addEventListener('dragleave',()=>scanDrop.classList.remove('dragover'));
+scanDrop.addEventListener('drop',e=>{e.preventDefault();scanDrop.classList.remove('dragover');handleScanFile(e.dataTransfer.files[0]);});
+
+// 読み取り実行
+document.getElementById('btn-scan-run').addEventListener('click', runScan);
+</script>
+
+
+</body></html>
