@@ -183,7 +183,7 @@
           <div class="seat-card west">
             <div class="seat-wind"><span class="seat-wind-k">西</span> WEST</div>
             <select class="seat-sel" id="sel-west"><option value="">－ 未選択 －</option><option value="0">P1</option><option value="1">P2</option><option value="2">P3</option><option value="3">P4</option><option value="4">P5</option><option value="5">P6</option></select>
-            <input class="seat-inp" id="inp-west" type="number" placeholder="持ち点">
+            <input class="seat-inp" id="inp-west" type="number" placeholder="持ち点" min="-100000" max="200000" step="100">
             <div class="seat-prev z" id="pv-west"></div>
           </div>
           <div></div>
@@ -191,14 +191,14 @@
           <div class="seat-card north">
             <div class="seat-wind"><span class="seat-wind-k">北</span> NORTH</div>
             <select class="seat-sel" id="sel-north"><option value="">－ 未選択 －</option><option value="0">P1</option><option value="1">P2</option><option value="2">P3</option><option value="3">P4</option><option value="4">P5</option><option value="5">P6</option></select>
-            <input class="seat-inp" id="inp-north" type="number" placeholder="持ち点">
+            <input class="seat-inp" id="inp-north" type="number" placeholder="持ち点" min="-100000" max="200000" step="100">
             <div class="seat-prev z" id="pv-north"></div>
           </div>
           <div class="table-center"><span class="tc-label">卓</span></div>
           <div class="seat-card south">
             <div class="seat-wind"><span class="seat-wind-k">南</span> SOUTH</div>
             <select class="seat-sel" id="sel-south"><option value="">－ 未選択 －</option><option value="0">P1</option><option value="1">P2</option><option value="2">P3</option><option value="3">P4</option><option value="4">P5</option><option value="5">P6</option></select>
-            <input class="seat-inp" id="inp-south" type="number" placeholder="持ち点">
+            <input class="seat-inp" id="inp-south" type="number" placeholder="持ち点" min="-100000" max="200000" step="100">
             <div class="seat-prev z" id="pv-south"></div>
           </div>
 
@@ -206,7 +206,7 @@
           <div class="seat-card east">
             <div class="seat-wind"><span class="seat-wind-k">東</span> EAST</div>
             <select class="seat-sel" id="sel-east"><option value="">－ 未選択 －</option><option value="0">P1</option><option value="1">P2</option><option value="2">P3</option><option value="3">P4</option><option value="4">P5</option><option value="5">P6</option></select>
-            <input class="seat-inp" id="inp-east" type="number" placeholder="持ち点">
+            <input class="seat-inp" id="inp-east" type="number" placeholder="持ち点" min="-100000" max="200000" step="100">
             <div class="seat-prev z" id="pv-east"></div>
           </div>
           <div></div>
@@ -240,8 +240,9 @@
 
 </main>
 <script>
-const APP_VERSION='1.0.0', BUILD_NUMBER=2;
+const APP_VERSION='1.0.0', BUILD_NUMBER=4;
 const MP=6, BASE=25000, BONUS=[30,10,-10,-30];
+const SCORE_MIN=-100000, SCORE_MAX=200000;
 const WINDS=['east','south','west','north'];
 const WL={east:'東',south:'南',west:'西',north:'北'};
 const WP={east:0,south:1,west:2,north:3};
@@ -688,7 +689,14 @@ if(savedKey) document.getElementById('api-key-inp').value=savedKey;
 // 全イベント登録
 WINDS.forEach(w=>{
   document.getElementById('sel-'+w).addEventListener('change', preview);
-  document.getElementById('inp-'+w).addEventListener('input', preview);
+  const inp=document.getElementById('inp-'+w);
+  inp.addEventListener('input', preview);
+  inp.addEventListener('blur', ()=>{
+    if(inp.value==='') return;
+    const n=parseInt(inp.value);
+    const clamped=Math.min(SCORE_MAX, Math.max(SCORE_MIN, n));
+    if(clamped!==n){inp.value=clamped;preview();}
+  });
 });
 document.getElementById('btn-clear-in').addEventListener('click', clearIn);
 document.getElementById('btn-add').addEventListener('click', addGame);
