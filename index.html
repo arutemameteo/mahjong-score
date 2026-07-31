@@ -43,7 +43,7 @@
     width:195px;height:118px;display:flex;align-items:center;justify-content:center;}
   .tc-label{font-family:'Noto Serif JP',serif;color:rgba(255,255,255,.2);font-size:26px;letter-spacing:8px;}
 
-  .seat-card{background:var(--tile);border:1px solid var(--border);border-radius:4px;padding:10px 10px 8px;width:88px;}
+  .seat-card{background:var(--tile);border:1px solid var(--border);border-radius:4px;padding:10px 10px 8px;width:100px;}
   /* rot-0: 東が下（デフォルト） */
   .rot-0 .seat-card.east {grid-column:2;grid-row:3;border-top:3px solid #c0392b;}
   .rot-0 .seat-card.south{grid-column:3;grid-row:2;border-left:3px solid #d4820a;}
@@ -74,7 +74,7 @@
     border-radius:2px;background:white;outline:none;margin-bottom:6px;cursor:pointer;}
   .seat-sel:focus{border-color:var(--felt-light);}
   .score-inp-wrap{display:flex;align-items:stretch;width:auto;}
-  .score-inp-wrap .seat-inp{width:36px;border-radius:2px 0 0 2px;border-right:none;}
+  .score-inp-wrap .seat-inp{width:48px;border-radius:2px 0 0 2px;border-right:none;}
   .score-suffix{padding:6px 7px;font-size:14px;font-family:inherit;border:1px solid var(--border);
     border-left:none;background:#f0f0f0;color:var(--muted);border-radius:0 2px 2px 0;
     display:flex;align-items:center;user-select:none;}
@@ -134,9 +134,9 @@
   .scan-status.ok{color:var(--plus);}
   .scan-status.err{color:var(--minus);}
     .player-grid{grid-template-columns:repeat(3,1fr);}
-    .table-layout{grid-template-columns:128px 168px 128px;}
+    .table-layout{grid-template-columns:108px 112px 108px;}
     .seat-card{width:88px;}
-    .table-center{width:152px;height:92px;}
+    .table-center{width:108px;height:92px;}
   }
 </style>
 </head>
@@ -232,12 +232,12 @@
           </div>
           <div></div>
         </div>
-        <div id="sum-bar" style="width:575px;margin:12px auto 0;
+        <div id="sum-bar" style="width:100px;margin:12px auto 0;
           padding:8px 14px;border-radius:3px;font-size:13px;align-items:center;gap:8px;
           background:#f0f7f2;border:1px solid #b7dcc8;color:var(--felt);display:none;">
         </div>
-        <div class="btn-row" style="width:575px;margin:10px auto 0;align-items:center;">
-          <button class="btn btn-g" id="btn-rotate" style="font-size:12px;padding:6px 14px;">↻ 回転</button>
+        <div class="btn-row" style="width:100%;margin:10px auto 0;align-items:center;">
+          <button class="btn btn-g" id="btn-rotate" style="font-size:12px;padding:6px 8px;">↻ 回転</button>
           <span id="rot-label" style="font-size:11px;color:var(--muted);">東席視点</span>
           <button class="btn btn-g" id="btn-clear-in">クリア</button>
           <button class="btn btn-p" id="btn-add">この半荘を記録</button>
