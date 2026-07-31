@@ -44,10 +44,26 @@
   .tc-label{font-family:'Noto Serif JP',serif;color:rgba(255,255,255,.2);font-size:26px;letter-spacing:8px;}
 
   .seat-card{background:var(--tile);border:1px solid var(--border);border-radius:4px;padding:10px 10px 8px;width:160px;}
-  .seat-card.east {grid-column:2;grid-row:3;border-top:3px solid #c0392b;}
-  .seat-card.south{grid-column:3;grid-row:2;border-left:3px solid #d4820a;}
-  .seat-card.west {grid-column:2;grid-row:1;border-bottom:3px solid #2980b9;}
-  .seat-card.north{grid-column:1;grid-row:2;border-right:3px solid #27ae60;}
+  /* rot-0: 東が下（デフォルト） */
+  .rot-0 .seat-card.east {grid-column:2;grid-row:3;border-top:3px solid #c0392b;}
+  .rot-0 .seat-card.south{grid-column:3;grid-row:2;border-left:3px solid #d4820a;}
+  .rot-0 .seat-card.west {grid-column:2;grid-row:1;border-bottom:3px solid #2980b9;}
+  .rot-0 .seat-card.north{grid-column:1;grid-row:2;border-right:3px solid #27ae60;}
+  /* rot-1: 南が下 */
+  .rot-1 .seat-card.south{grid-column:2;grid-row:3;border-top:3px solid #d4820a;}
+  .rot-1 .seat-card.west {grid-column:3;grid-row:2;border-left:3px solid #2980b9;}
+  .rot-1 .seat-card.north{grid-column:2;grid-row:1;border-bottom:3px solid #27ae60;}
+  .rot-1 .seat-card.east {grid-column:1;grid-row:2;border-right:3px solid #c0392b;}
+  /* rot-2: 西が下 */
+  .rot-2 .seat-card.west {grid-column:2;grid-row:3;border-top:3px solid #2980b9;}
+  .rot-2 .seat-card.north{grid-column:3;grid-row:2;border-left:3px solid #27ae60;}
+  .rot-2 .seat-card.east {grid-column:2;grid-row:1;border-bottom:3px solid #c0392b;}
+  .rot-2 .seat-card.south{grid-column:1;grid-row:2;border-right:3px solid #d4820a;}
+  /* rot-3: 北が下 */
+  .rot-3 .seat-card.north{grid-column:2;grid-row:3;border-top:3px solid #27ae60;}
+  .rot-3 .seat-card.east {grid-column:3;grid-row:2;border-left:3px solid #c0392b;}
+  .rot-3 .seat-card.south{grid-column:2;grid-row:1;border-bottom:3px solid #d4820a;}
+  .rot-3 .seat-card.west {grid-column:1;grid-row:2;border-right:3px solid #2980b9;}
   .seat-wind{font-family:'Noto Serif JP',serif;font-size:11px;font-weight:700;letter-spacing:1px;margin-bottom:5px;display:flex;align-items:center;gap:4px;}
   .seat-wind-k{font-size:15px;}
   .east  .seat-wind{color:#c0392b;}
@@ -183,7 +199,7 @@
         </div>
       </div>
       <div class="table-layout-wrap">
-        <div class="table-layout">
+        <div class="table-layout rot-0" id="table-layout">
           <div></div>
           <div class="seat-card west">
             <div class="seat-wind"><span class="seat-wind-k">西</span> WEST</div>
@@ -220,7 +236,9 @@
           padding:8px 14px;border-radius:3px;font-size:13px;align-items:center;gap:8px;
           background:#f0f7f2;border:1px solid #b7dcc8;color:var(--felt);display:none;">
         </div>
-        <div class="btn-row" style="width:575px;margin:10px auto 0;">
+        <div class="btn-row" style="width:575px;margin:10px auto 0;align-items:center;">
+          <button class="btn btn-g" id="btn-rotate" style="font-size:12px;padding:6px 14px;">↻ 回転</button>
+          <span id="rot-label" style="font-size:11px;color:var(--muted);">東席視点</span>
           <button class="btn btn-g" id="btn-clear-in">クリア</button>
           <button class="btn btn-p" id="btn-add">この半荘を記録</button>
         </div>
@@ -245,7 +263,7 @@
 
 </main>
 <script>
-const APP_VERSION='1.0.0', BUILD_NUMBER=5;
+const APP_VERSION='1.0.0', BUILD_NUMBER=6;
 const MP=6, BASE=25000, BONUS=[30,10,-10,-30];
 const SCORE_MIN=-1000, SCORE_MAX=2000;
 const WINDS=['east','south','west','north'];
@@ -254,6 +272,14 @@ const WP={east:0,south:1,west:2,north:3};
 const LS='mahjong_v2';
 
 let players=Array(MP).fill(''), games=[];
+let rotState = 0;
+const ROT_LABEL = ['東席', '南席', '西席', '北席'];
+const ROT_LAYOUT_DESC = [
+  '下=東、上=西、左=北、右=南',
+  '下=南、上=北、左=東、右=西',
+  '下=西、上=東、左=南、右=北',
+  '下=北、上=南、左=西、右=東'
+];
 
 function getSeatInput(){
   const s={};
@@ -577,10 +603,10 @@ function runScan(){
   setScanStatus('読み取り中…','loading');
   document.getElementById('btn-scan-run').disabled=true;
 
-  const layoutDesc = '卓の配置：上=西、下=東、左=北、右=南';
+  const layoutDesc = ROT_LAYOUT_DESC[rotState];
   const prompt = `この麻雀卓のスコア表示画像から、各席の持ち点を読み取ってください。
-${layoutDesc}
-画像内も同じ方角の配置になっています（上の数字=西、下の数字=東、左の数字=北、右の数字=南）。
+卓の配置（画像内の位置と風の対応）：${layoutDesc}
+画像内もこの配置になっています。
 
 必ず以下のJSON形式のみで返答してください。他の文章は不要です：
 {"east":数値,"south":数値,"west":数値,"north":数値}
@@ -702,6 +728,13 @@ WINDS.forEach(w=>{
     const clamped=Math.min(SCORE_MAX, Math.max(SCORE_MIN, n));
     if(clamped!==n){inp.value=clamped;preview();}
   });
+});
+document.getElementById('btn-rotate').addEventListener('click', () => {
+  const layout = document.getElementById('table-layout');
+  layout.classList.remove('rot-' + rotState);
+  rotState = (rotState + 1) % 4;
+  layout.classList.add('rot-' + rotState);
+  document.getElementById('rot-label').textContent = ROT_LABEL[rotState] + '視点';
 });
 document.getElementById('btn-clear-in').addEventListener('click', clearIn);
 document.getElementById('btn-add').addEventListener('click', addGame);
