@@ -133,11 +133,10 @@
   .scan-status.loading{color:var(--felt);}
   .scan-status.ok{color:var(--plus);}
   .scan-status.err{color:var(--minus);}
-    .player-grid{grid-template-columns:repeat(3,1fr);}
-    .table-layout{grid-template-columns:108px 112px 108px;}
-    .seat-card{width:88px;}
-    .table-center{width:108px;height:92px;}
-  }
+  .player-grid{grid-template-columns:repeat(3,1fr);}
+  .table-layout{grid-template-columns:108px 112px 108px;}
+  .seat-card{width:100px;}
+  .table-center{width:108px;height:92px;}
 </style>
 </head>
 <body>
@@ -178,7 +177,7 @@
   <div class="card">
     <div class="card-header">
       <span class="card-title">半荘入力</span>
-      <span style="font-size:11px;color:var(--muted);margin-left:auto">各席のプレイヤーと持ち点を入力 ／ 同点は 東 &gt; 南 &gt; 西 &gt; 北 で順位決定</span>
+      <span style="font-size:11px;color:var(--muted);">各席のプレイヤーと持ち点を入力 ／ 同点は 東 &gt; 南 &gt; 西 &gt; 北 で順位決定</span>
       <button class="btn btn-g" id="btn-scan-open" style="font-size:11px;padding:5px 12px;white-space:nowrap">📷 写真から読み取り</button>
     </div>
     <div class="card-body">
@@ -250,8 +249,8 @@
     <div class="card-header">
       <span class="card-title">成績表</span>
       <span class="badge" id="gc">0半荘</span>
-      <span style="font-size:11px;color:var(--muted);margin-left:auto">25000点持ち ／ 五捨六入 ／ ウマ 1位+30 2位+10 3位−10 4位−30</span>
-      <button class="btn btn-danger" id="btn-reset" style="margin-left:12px">成績リセット</button>
+      <span style="font-size:11px;color:var(--muted);">25000点持ち ／ 五捨六入 ／ ウマ 1位+30 2位+10 3位−10 4位−30</span>
+      <button class="btn btn-danger" id="btn-reset">成績リセット</button>
     </div>
     <div class="card-body" style="padding:0">
       <div class="tbl-wrap">
